@@ -16,8 +16,6 @@ func main() {
 		panic(err)
 	}
 
-	log.Logger.Info("logger initialized")
-
 	err = db.Connect()
 	if err != nil {
 		panic(err)
