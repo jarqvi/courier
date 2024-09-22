@@ -9,7 +9,9 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func NewZapLogger() (*zap.SugaredLogger, error) {
+var Logger *zap.SugaredLogger
+
+func NewZapLogger() error {
 	TZ := os.Getenv("TZ")
 	if TZ == "" {
 		TZ = "UTC"
@@ -17,7 +19,7 @@ func NewZapLogger() (*zap.SugaredLogger, error) {
 
 	location, err := time.LoadLocation(TZ)
 	if err != nil {
-		return nil, fmt.Errorf("error in loading timezone: %w", err)
+		return fmt.Errorf("error in loading timezone: %w", err)
 	}
 
 	encoderConfig := zapcore.EncoderConfig{
@@ -42,10 +44,12 @@ func NewZapLogger() (*zap.SugaredLogger, error) {
 
 	logger, err := config.Build()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return logger.Sugar(), nil
+	Logger = logger.Sugar()
+
+	return nil
 }
 
 func customTimeEncoder(location *time.Location) zapcore.TimeEncoder {

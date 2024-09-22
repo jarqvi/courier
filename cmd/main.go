@@ -1,39 +1,40 @@
 package main
 
 import (
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/jarqvi/courier/internal/db"
-	"github.com/jarqvi/courier/internal/dns"
 	"github.com/jarqvi/courier/internal/log"
+	"github.com/jarqvi/courier/internal/smtp"
 )
 
 func main() {
-	logger, err := log.NewZapLogger()
+	err := log.NewZapLogger()
 	if err != nil {
 		panic(err)
 	}
 
-	logger.Sync()
+	log.Logger.Info("logger initialized")
 
-	logger.Info("logger initialized")
-
-	database, err := db.Connect()
+	err = db.Connect()
 	if err != nil {
 		panic(err)
 	}
 
-	defer func() {
-		err := database.Disconnect()
-		if err != nil {
-			logger.Error("failed to disconnect from database: ", err)
-		}
-	}()
+	smtp.Init()
 
-	logger.Info("database initialized")
-
-	_, err = dns.Init()
-	if err != nil {
+	if smtp.ServerError != nil {
 		panic(err)
 	}
 
-	logger.Info("dns client initialized")
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+
+	<-stop
+
+	smtp.Shutdown()
+	db.Instance.Disconnect()
+	log.Logger.Sync()
 }

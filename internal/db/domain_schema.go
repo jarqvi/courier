@@ -22,6 +22,7 @@ type Domain struct {
 	LastCheckedAt time.Time `gorm:"default:null"`
 
 	Addresses []Address `gorm:"foreignKey:DomainID"`
+	Users     []User    `gorm:"foreignKey:DomainID"`
 }
 
 func (d *Database) CreateDomain(name string) (*Domain, error) {
@@ -73,6 +74,15 @@ func (d *Database) GetDomain(name string) (*Domain, error) {
 	}
 
 	return &domain, nil
+}
+
+func (d *Database) GetAllDomains() ([]Domain, error) {
+	var domains []Domain
+	if err := d.Find(&domains).Error; err != nil {
+		return nil, fmt.Errorf("failed to get all domains: %w", err)
+	}
+
+	return domains, nil
 }
 
 func (d *Database) DeleteDomain(name string) error {
