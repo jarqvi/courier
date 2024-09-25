@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/jarqvi/courier/internal/dns"
-	"github.com/jarqvi/courier/internal/log"
 )
 
 func isAllowedDomain(domain string, allowedDomains []string) bool {
@@ -37,11 +36,6 @@ func checkSPF(domain string, hostname string) error {
 	if err != nil {
 		return fmt.Errorf("failed to resolve SPF record: %w", err)
 	}
-
-	log.Logger.Debug("domain: ", domain)
-	log.Logger.Debug("hostname: ", hostname)
-	log.Logger.Debug("ips: ", ips)
-	log.Logger.Debug("txt records: ", txtRecords)
 
 	for _, record := range txtRecords {
 		if strings.HasPrefix(record, "v=spf1") {
