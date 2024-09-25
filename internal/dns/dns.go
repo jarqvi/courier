@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/jarqvi/courier/internal/log"
 	"github.com/miekg/dns"
 )
 
@@ -11,7 +12,9 @@ type DNS struct {
 	config *dns.ClientConfig
 }
 
-func Init() (*DNS, error) {
+var Client *DNS
+
+func Init() error {
 	DNS_CONFIG_PATH := os.Getenv("DNS_CONFIG_PATH")
 	if DNS_CONFIG_PATH == "" {
 		DNS_CONFIG_PATH = "/etc/resolv.conf"
@@ -19,10 +22,14 @@ func Init() (*DNS, error) {
 
 	config, err := dns.ClientConfigFromFile(DNS_CONFIG_PATH)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get dns config: %w", err)
+		return fmt.Errorf("failed to get dns config: %w", err)
 	}
 
-	return &DNS{
+	Client = &DNS{
 		config: config,
-	}, nil
+	}
+
+	log.Logger.Info("dns client initialized")
+
+	return nil
 }

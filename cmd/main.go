@@ -6,6 +6,7 @@ import (
 	"syscall"
 
 	"github.com/jarqvi/courier/internal/db"
+	"github.com/jarqvi/courier/internal/dns"
 	"github.com/jarqvi/courier/internal/log"
 	"github.com/jarqvi/courier/internal/smtp"
 )
@@ -21,8 +22,12 @@ func main() {
 		panic(err)
 	}
 
-	smtp.Init()
+	err = dns.Init()
+	if err != nil {
+		panic(err)
+	}
 
+	smtp.Init()
 	if smtp.ServerError != nil {
 		panic(err)
 	}

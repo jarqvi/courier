@@ -1,11 +1,16 @@
 package smtp
 
-import "github.com/emersion/go-smtp"
+import (
+	"github.com/emersion/go-smtp"
+)
 
-type Backend struct{
+type Backend struct {
 	AllowedDomains []string
 }
 
-func (bkd *Backend) NewSession(_ *smtp.Conn) (smtp.Session, error) {
-	return &Session{AllowedDomains: bkd.AllowedDomains}, nil
+func (bkd *Backend) NewSession(state *smtp.Conn) (smtp.Session, error) {
+	return &Session{
+		AllowedDomains: bkd.AllowedDomains,
+		Hostname: state.Hostname(),
+	}, nil
 }
