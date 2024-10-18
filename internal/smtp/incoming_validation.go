@@ -18,14 +18,6 @@ func isAllowedDomain(domain string, allowedDomains []string) bool {
 	return false
 }
 
-func sanitizeEmailAddress(email string) error {
-	if strings.Contains(email, "<") || strings.Contains(email, ">") {
-		return fmt.Errorf("invalid characters in email address")
-	}
-
-	return nil
-}
-
 func checkSPF(domain string, hostname string) error {
 	ips, err := dns.Client.ResolveARecord(hostname)
 	if err != nil {
@@ -80,4 +72,67 @@ func checkSPF(domain string, hostname string) error {
 	}
 
 	return fmt.Errorf("no valid SPF record found")
+}
+
+func checkDKIM(headers []string) error {
+	var dkimHeaders []string
+
+	for _, header := range headers {
+		if strings.HasPrefix(header, "DKIM-Signature") {
+			dkimHeaders = strings.Split(strings.TrimSpace(strings.Split(header, ":")[1]), ";")
+		}
+	}
+
+	if len(dkimHeaders) == 0 {
+		return fmt.Errorf("no DKIM header found")
+	}
+
+	var selector string
+
+	for _, header := range dkimHeaders {
+		parts := strings.Split(header, " ")
+		for _, part := range parts {
+			if strings.HasPrefix(part, "s=") {
+				selector = strings.TrimSpace(strings.Split(part, "=")[1])
+				break
+			}
+		}
+
+		if selector != "" {
+			break
+		}
+	}
+
+	if selector == "" {
+		return fmt.Errorf("no selector found")
+	}
+
+	var domain string
+	
+	for _, header := range dkimHeaders {
+		parts := strings.Split(header, " ")
+		for _, part := range parts {
+			if strings.HasPrefix(part, "d=") {
+				domain = strings.TrimSpace(strings.Split(part, "=")[1])
+				break
+			}
+		}
+
+		if domain != "" {
+			break
+		}
+	}
+
+	if domain == "" {
+		return fmt.Errorf("no selector found")
+	}
+
+	fqdn := fmt.Sprintf("%s._domainkey.%s", selector, domain)
+	txtRecords, err := dns.Client.ResolveTXT(fqdn)
+	if err != nil {
+		return fmt.Errorf("failed to resolve DKIM record: %w", err)
+	}
+
+	fmt.Println(txtRecords)
+	return nil
 }

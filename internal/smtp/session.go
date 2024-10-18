@@ -33,18 +33,6 @@ func (s *Session) Mail(from string, opts *smtp.MailOptions) error {
 		}
 	}
 
-	if err := sanitizeEmailAddress(addr.Address); err != nil {
-		log.Logger.Error("invalid sender address: ", from, err)
-
-		return &smtp.SMTPError{
-			Code:    550,
-			Message: "Invalid sender",
-			EnhancedCode: smtp.EnhancedCode{
-				5, 1, 1,
-			},
-		}
-	}
-
 	domain := strings.Split(addr.Address, "@")[1]
 
 	if err := checkSPF(domain, s.Hostname); err != nil {
@@ -99,8 +87,9 @@ func (s *Session) Data(r io.Reader) error {
 	reader := bufio.NewReader(r)
 
 	var headers []string
-	var body string
+	var currentHeader string
 	isHeaders := true
+	var bodyBuilder strings.Builder
 
 	for {
 		line, err := reader.ReadString('\n')
@@ -111,15 +100,44 @@ func (s *Session) Data(r io.Reader) error {
 			return err
 		}
 
-		if isHeaders && strings.TrimSpace(line) == "" {
-			isHeaders = false
-			continue
-		}
+		line = strings.TrimRight(line, "\r\n") 
 
 		if isHeaders {
-			headers = append(headers, line)
+			if line == "" {
+				if currentHeader != "" {
+					headers = append(headers, currentHeader)
+				}
+				isHeaders = false
+				continue
+			}
+
+			if strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t") {
+				currentHeader += " " + strings.TrimSpace(line)
+			} else {
+				if currentHeader != "" {
+					headers = append(headers, currentHeader)
+				}
+				currentHeader = line
+			}
 		} else {
-			body += line
+			bodyBuilder.WriteString(line)
+			bodyBuilder.WriteString("\n")
+		}
+	}
+
+	if currentHeader != "" {
+		headers = append(headers, currentHeader)
+	}
+
+	if err := checkDKIM(headers); err != nil {
+		log.Logger.Error("dkim check failed: ", err)
+
+		return &smtp.SMTPError{
+			Code:    550,
+			Message: "DKIM check failed",
+			EnhancedCode: smtp.EnhancedCode{
+				5, 7, 1,
+			},
 		}
 	}
 
@@ -129,7 +147,7 @@ func (s *Session) Data(r io.Reader) error {
 	}
 
 	log.Logger.Info("Body:")
-	log.Logger.Info("%s", body)
+	log.Logger.Info("%s", bodyBuilder.String())
 
 	return nil
 }

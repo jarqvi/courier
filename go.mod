@@ -15,6 +15,7 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/mattn/go-sqlite3 v1.14.23 // indirect
 	github.com/miekg/dns v1.1.62 // indirect
+	github.com/toorop/go-dkim v0.0.0-20240103092955-90b7d1423f92 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/mod v0.18.0 // indirect
 	golang.org/x/net v0.27.0 // indirect
